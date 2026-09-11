@@ -1,5 +1,7 @@
 package com.mtperaya.transactionbackend.controller;
 
+import java.util.UUID;
+
 import com.mtperaya.transactionbackend.dto.CreateAccountRequest;
 import com.mtperaya.transactionbackend.entity.Account;
 import com.mtperaya.transactionbackend.service.AccountService;
@@ -7,9 +9,13 @@ import com.mtperaya.transactionbackend.service.AccountService;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+
 
 
 @RestController // tells Spring that this class is a controller that will eventually handle HTTP requests.
@@ -33,6 +39,14 @@ public class AccountController {
                 .status(HttpStatus.CREATED)
                 .body(account);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Account> getAccount(@PathVariable UUID id) {
+        return accountService.getAccount(id)
+                .map(account -> ResponseEntity.ok(account))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
 
 }
 
