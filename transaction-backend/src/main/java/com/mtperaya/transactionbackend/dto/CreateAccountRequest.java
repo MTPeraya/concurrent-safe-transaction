@@ -2,9 +2,17 @@ package com.mtperaya.transactionbackend.dto;
 
 import java.math.BigDecimal;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+
 public class CreateAccountRequest {
 
+    @NotBlank
     private String ownerName;
+    
+    @NotNull
+    @DecimalMin(value = "0.00")
     private BigDecimal initialBalance;
 
     public CreateAccountRequest() {

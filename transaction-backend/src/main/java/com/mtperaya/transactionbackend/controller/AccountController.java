@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 
+import jakarta.validation.Valid;
 
 
 @RestController // tells Spring that this class is a controller that will eventually handle HTTP requests.
@@ -29,7 +30,8 @@ public class AccountController {
     }
 
     @PostMapping
-    public ResponseEntity<Account> createAccount(@RequestBody CreateAccountRequest request) {
+    public ResponseEntity<Account> createAccount(
+        @Valid @RequestBody CreateAccountRequest request) {
         Account account = accountService.createAccount(
             request.getOwnerName(),
             request.getInitialBalance()
