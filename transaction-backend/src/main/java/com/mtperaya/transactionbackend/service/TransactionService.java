@@ -63,13 +63,13 @@ public class TransactionService {
 
         // 4. Lock both accounts in the same order
         
-        //Account firstAccount = accountRepository.findByIdWithLock(firstAccountId)
-        Account firstAccount = accountRepository.findById(firstAccountId)
+        Account firstAccount = accountRepository.findByIdWithLock(firstAccountId)
+        // Account firstAccount = accountRepository.findById(firstAccountId)
                 .orElseThrow(() ->
                         new AccountNotFoundException("Account not found: " + firstAccountId));
 
-        //Account secondAccount = accountRepository.findByIdWithLock(secondAccountId)
-        Account secondAccount = accountRepository.findById(secondAccountId)
+        Account secondAccount = accountRepository.findByIdWithLock(secondAccountId)
+        // Account secondAccount = accountRepository.findById(secondAccountId)
                 .orElseThrow(() ->
                         new AccountNotFoundException("Account not found: " + secondAccountId));
 
