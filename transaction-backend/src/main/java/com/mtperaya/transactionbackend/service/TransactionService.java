@@ -17,16 +17,20 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import lombok.RequiredArgsConstructor;
-
 
 @Service
-@RequiredArgsConstructor
 public class TransactionService {
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
 
+    public TransactionService(
+            AccountRepository accountRepository,
+            TransactionRepository transactionRepository) {
+
+        this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
+}
     @Transactional
     public Transaction transfer(
             UUID fromAccountId,
@@ -43,7 +47,7 @@ public class TransactionService {
         if (fromAccountId == null || toAccountId == null) {
             throw new InvalidTransferException("Account IDs cannot be null");
         }
-        
+
         if (fromAccountId.equals(toAccountId)) {
             throw new InvalidTransferException(
                     "Cannot transfer to the same account");
