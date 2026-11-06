@@ -30,7 +30,8 @@ public class TransactionService {
 
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
-}
+        }
+        
     @Transactional
     public Transaction transfer(
             UUID fromAccountId,
@@ -53,27 +54,43 @@ public class TransactionService {
                     "Cannot transfer to the same account");
         }
 
-        // 3. Retrieve sender
-        Account sender = accountRepository.findById(fromAccountId)
-                .orElseThrow(() ->
-                        new AccountNotFoundException("Sender account not found"));
+        // 3. Determine consistent lock order (ascending UUID)
+        UUID firstAccountId = fromAccountId.compareTo(toAccountId) < 0
+                ? fromAccountId : toAccountId;
 
-        // 4. Retrieve receiver
-        Account receiver = accountRepository.findById(toAccountId)
-                .orElseThrow(() ->
-                        new AccountNotFoundException("Receiver account not found"));
+        UUID secondAccountId = fromAccountId.compareTo(toAccountId) < 0
+                ? toAccountId : fromAccountId;
 
-        // 5. Check sufficient funds
+        // 4. Lock both accounts in the same order
+        
+        //Account firstAccount = accountRepository.findByIdWithLock(firstAccountId)
+        Account firstAccount = accountRepository.findById(firstAccountId)
+                .orElseThrow(() ->
+                        new AccountNotFoundException("Account not found: " + firstAccountId));
+
+        //Account secondAccount = accountRepository.findByIdWithLock(secondAccountId)
+        Account secondAccount = accountRepository.findById(secondAccountId)
+                .orElseThrow(() ->
+                        new AccountNotFoundException("Account not found: " + secondAccountId));
+
+        // 6. Restore sender and receiver roles
+        Account sender = fromAccountId.equals(firstAccountId)
+                ? firstAccount : secondAccount;
+
+        Account receiver = toAccountId.equals(firstAccountId)
+                ? firstAccount : secondAccount;
+
+        // 7. Check sufficient funds
         if (sender.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException(
                     "Insufficient funds");
         }
 
-        // 6. Update balances using dirty checking
+        // 8. Update balances using dirty checking
         sender.setBalance(sender.getBalance().subtract(amount));
         receiver.setBalance(receiver.getBalance().add(amount));
 
-        // 7. Create transaction record
+        // 9. Create transaction record
         Transaction transaction = new Transaction(
                 sender.getId(),
                 receiver.getId(),
@@ -81,7 +98,7 @@ public class TransactionService {
                 TransactionStatus.COMPLETED
         );
 
-        // 8. Save and return transaction
+        // 10. Save and return transaction
         return transactionRepository.save(transaction);
     }
 }
