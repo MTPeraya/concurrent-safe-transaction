@@ -5,6 +5,7 @@ import com.mtperaya.transactionbackend.repository.AccountRepository;
 import com.mtperaya.transactionbackend.entity.Transaction;
 import com.mtperaya.transactionbackend.repository.TransactionRepository;
 import com.mtperaya.transactionbackend.entity.TransactionStatus;
+import com.mtperaya.transactionbackend.dto.TransactionHistoryResponse;
 
 import com.mtperaya.transactionbackend.exception.InvalidTransferException;
 import com.mtperaya.transactionbackend.exception.AccountNotFoundException;
@@ -16,6 +17,9 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 
 @Service
@@ -101,5 +105,32 @@ public class TransactionService {
         // 10. Save and return transaction
         return transactionRepository.save(transaction);
     }
+ 
+    @Transactional(readOnly = true)
+    public Page<TransactionHistoryResponse> getAccountTransactionHistory(
+        UUID accountId, Pageable pageable) {
+
+        // Verify account exists
+        accountRepository.findById(accountId)
+                .orElseThrow(() ->
+                        new AccountNotFoundException(
+                                "Account not found: " + accountId
+                        )
+                );
+
+        // Retrieve history and convert entities into DTOs
+        return transactionRepository
+                .findAccountHistory(accountId, pageable)
+                .map(transaction -> new TransactionHistoryResponse(
+                        transaction.getId(),
+                        transaction.getFromAccountId(),
+                        transaction.getToAccountId(),
+                        transaction.getAmount(),
+                        transaction.getStatus(),
+                        transaction.getCreatedAt()
+                ));
+        }
+
+
 }
 

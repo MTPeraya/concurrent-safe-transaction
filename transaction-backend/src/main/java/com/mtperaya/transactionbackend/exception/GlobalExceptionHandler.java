@@ -38,4 +38,32 @@ public class GlobalExceptionHandler {
 
         return response;
     }
+    
+    @ExceptionHandler(AccountNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ResponseBody
+    public Map<String, Object> handleAccountNotFound(
+            AccountNotFoundException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", 404);
+        response.put("message", exception.getMessage());
+
+        return response;
+    }
+
+    @ExceptionHandler(InvalidPaginationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public Map<String, Object> handleInvalidPagination(
+            InvalidPaginationException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", 400);
+        response.put("message", exception.getMessage());
+
+        return response;
+    }
 }
