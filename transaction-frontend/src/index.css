@@ -1,0 +1,44 @@
+:root {
+  font-family: "Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif;
+  color: #f4f0e8;
+  background: #101413;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+}
+
+button,
+a,
+input {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid #e8b867;
+  outline-offset: 4px;
+}
+
+::selection {
+  color: #101413;
+  background: #e8b867;
+}

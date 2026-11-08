@@ -8,6 +8,8 @@ import com.mtperaya.transactionbackend.repository.AccountRepository;
 import java.math.BigDecimal;
 
 import org.springframework.stereotype.Service;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -58,6 +60,13 @@ public class AccountService {
         }
 
         return account;
+    }
+
+    public List<Account> getAccountsByOwner(User owner) {
+        if (owner == null) {
+            return Collections.emptyList();
+        }
+        return accountRepository.findByOwner(owner);
     }
 
 }

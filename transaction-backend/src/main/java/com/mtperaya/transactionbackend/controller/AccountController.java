@@ -1,5 +1,6 @@
 package com.mtperaya.transactionbackend.controller;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.mtperaya.transactionbackend.dto.CreateAccountRequest;
@@ -52,6 +53,13 @@ public class AccountController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(account);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Account>> getMyAccounts(@AuthenticationPrincipal Jwt jwt) {
+        User requestingUser = resolveUser(jwt);
+        List<Account> accounts = accountService.getAccountsByOwner(requestingUser);
+        return ResponseEntity.ok(accounts);
     }
 
     @GetMapping("/{id}")

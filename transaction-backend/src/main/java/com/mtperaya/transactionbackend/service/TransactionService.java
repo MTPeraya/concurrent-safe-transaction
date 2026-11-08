@@ -56,7 +56,8 @@ public class TransactionService {
                 fromAccountId,
                 toAccountId,
                 amount,
-                UUID.randomUUID().toString()
+                UUID.randomUUID().toString(),
+                null
         );
     }
 
@@ -82,18 +83,6 @@ public class TransactionService {
 
         validateTransfer(fromAccountId, toAccountId, amount);
         validateIdempotencyKey(idempotencyKey);
-
-        // Authorization: the sender account must belong to the requesting user (if provided).
-        if (requestingUser != null) {
-            Account senderAccount = accountRepository.findById(fromAccountId)
-                    .orElseThrow(() -> new AccountNotFoundException(
-                            "Account not found: " + fromAccountId));
-
-            if (senderAccount.getOwner() == null || !senderAccount.getOwner().getId().equals(requestingUser.getId())) {
-                throw new AccessForbiddenException(
-                        "You do not have permission to transfer from this account");
-            }
-        }
 
         // 1. Acquire a PostgreSQL transaction-level advisory lock.
         entityManager.createNativeQuery("""
@@ -135,7 +124,8 @@ public class TransactionService {
                 fromAccountId,
                 toAccountId,
                 amount,
-                idempotencyKey
+                idempotencyKey,
+                requestingUser
         );
         return new TransferResult(newTransaction, false);
     }
@@ -183,7 +173,8 @@ public class TransactionService {
             UUID fromAccountId,
             UUID toAccountId,
             BigDecimal amount,
-            String idempotencyKey) {
+            String idempotencyKey,
+            User requestingUser) {
 
         // 1. Determine consistent lock order (ascending UUID).
         UUID firstAccountId = fromAccountId.compareTo(toAccountId) < 0
@@ -214,6 +205,14 @@ public class TransactionService {
         Account receiver = toAccountId.equals(firstAccountId)
                 ? firstAccount : secondAccount;
 
+        // Authorization: the sender account must belong to the requesting user (if provided).
+        if (requestingUser != null) {
+            if (sender.getOwner() == null || !sender.getOwner().getId().equals(requestingUser.getId())) {
+                throw new AccessForbiddenException(
+                        "You do not have permission to transfer from this account");
+            }
+        }
+
         // 4. Check sufficient funds.
         if (sender.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException(
@@ -232,6 +231,44 @@ public class TransactionService {
                 amount,
                 TransactionStatus.COMPLETED,
                 idempotencyKey
+        );
+
+        return transactionRepository.save(transaction);
+    }
+
+    /**
+     * Optimistic locking transfer implementation for benchmarking and comparison.
+     * Uses JPA @Version without SELECT FOR UPDATE row locking.
+     */
+    @Transactional
+    public Transaction transferOptimistic(
+            UUID fromAccountId,
+            UUID toAccountId,
+            BigDecimal amount) {
+
+        validateTransfer(fromAccountId, toAccountId, amount);
+
+        Account fromAccount = accountRepository.findById(fromAccountId)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + fromAccountId));
+        Account toAccount = accountRepository.findById(toAccountId)
+                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + toAccountId));
+
+        if (fromAccount.getBalance().compareTo(amount) < 0) {
+            throw new InsufficientFundsException("Insufficient funds in account: " + fromAccountId);
+        }
+
+        fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
+        toAccount.setBalance(toAccount.getBalance().add(amount));
+
+        accountRepository.save(fromAccount);
+        accountRepository.save(toAccount);
+
+        Transaction transaction = new Transaction(
+                fromAccountId,
+                toAccountId,
+                amount,
+                TransactionStatus.COMPLETED,
+                UUID.randomUUID().toString()
         );
 
         return transactionRepository.save(transaction);

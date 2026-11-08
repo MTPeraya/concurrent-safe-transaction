@@ -10,5 +10,17 @@
 target/
 build/
 
+# Node / Frontend
+node_modules/
+dist/
+
 # OS
 .DS_Store
+
+# Superpowers & Agent internal files
+docs/*
+docs/superpowers/
+*superpower*
+.vscode/
+.impeccable/
+.agents/
