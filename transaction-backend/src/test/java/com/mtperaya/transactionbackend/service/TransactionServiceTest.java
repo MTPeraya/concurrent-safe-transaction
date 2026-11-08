@@ -15,6 +15,8 @@ import com.mtperaya.transactionbackend.exception.AccountNotFoundException;
 import com.mtperaya.transactionbackend.exception.InsufficientFundsException;
 import com.mtperaya.transactionbackend.exception.InvalidTransferException;
 
+import com.mtperaya.transactionbackend.config.PostgresTestConfiguration;
+
 // JUnit 5
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 // Mockito
 import static org.mockito.Mockito.doAnswer;
@@ -38,6 +42,8 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
+@ActiveProfiles("test")
+@Import(PostgresTestConfiguration.class)
 @Transactional
 class TransactionServiceTest {
 

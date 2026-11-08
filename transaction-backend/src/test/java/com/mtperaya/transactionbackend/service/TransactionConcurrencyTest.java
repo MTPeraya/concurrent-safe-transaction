@@ -1,4 +1,5 @@
 package com.mtperaya.transactionbackend.service;
+import com.mtperaya.transactionbackend.config.PostgresTestConfiguration;
 
 import com.mtperaya.transactionbackend.entity.Account;
 import com.mtperaya.transactionbackend.repository.AccountRepository;
@@ -9,6 +10,8 @@ import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -24,6 +27,8 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
+@ActiveProfiles("test")
+@Import(PostgresTestConfiguration.class)
 class TransactionConcurrencyTest {
 
     @Autowired
@@ -225,6 +230,18 @@ class TransactionConcurrencyTest {
                 successful,
                 transactionRepository.count(),
                 "Database transaction count must match successful transfers"
+        );
+
+        assertEquals(
+            100,
+            successful,
+            "All 100 transfers must succeed"
+        );
+
+        assertEquals(
+            0,
+            failed,
+            "No transfers should fail"
         );
     }
 }
