@@ -25,7 +25,14 @@ jobs:
 
       # 3. Run tests against PostgreSQL Testcontainers
       - name: Run tests
-        run: mvn -f transaction-backend/pom.xml clean verify
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          if [ -z "$JWT_SECRET" ]; then
+            export JWT_SECRET=$(openssl rand -base64 32)
+          fi
+          chmod +x transaction-backend/mvnw
+          ./transaction-backend/mvnw -f transaction-backend/pom.xml clean verify
 
       # 4. Build Docker image only if tests pass
       - name: Build Docker image

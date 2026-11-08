@@ -99,7 +99,7 @@ class AuthControllerTest {
                 .andReturn();
 
         JsonNode registeredUser = objectMapper.readTree(registerResult.getResponse().getContentAsString());
-        String expectedUserId = registeredUser.get("id").asText();
+        String expectedUserId = registeredUser.get("id").asString();
 
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail("bob@example.com");
@@ -114,7 +114,7 @@ class AuthControllerTest {
                 .andReturn();
 
         JsonNode loginResponse = objectMapper.readTree(loginResult.getResponse().getContentAsString());
-        String token = loginResponse.get("accessToken").asText();
+        String token = loginResponse.get("accessToken").asString();
 
         SignedJWT signedJWT = SignedJWT.parse(token);
         assertThat(signedJWT.getHeader().getAlgorithm()).isEqualTo(JWSAlgorithm.HS256);
@@ -185,7 +185,7 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        String token = objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("accessToken").asText();
+        String token = objectMapper.readTree(loginResult.getResponse().getContentAsString()).get("accessToken").asString();
 
         String createAccountPayload = """
                 {

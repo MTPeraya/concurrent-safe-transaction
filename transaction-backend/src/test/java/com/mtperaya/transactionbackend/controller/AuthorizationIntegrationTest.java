@@ -61,7 +61,7 @@ class AuthorizationIntegrationTest {
                 .andReturn();
 
         JsonNode responseNode = objectMapper.readTree(loginResult.getResponse().getContentAsString());
-        return responseNode.get("accessToken").asText();
+        return responseNode.get("accessToken").asString();
     }
 
     private String createAccountForUser(String token, String ownerName, BigDecimal balance) throws Exception {
@@ -77,7 +77,7 @@ class AuthorizationIntegrationTest {
                 .andReturn();
 
         JsonNode responseNode = objectMapper.readTree(result.getResponse().getContentAsString());
-        return responseNode.get("id").asText();
+        return responseNode.get("id").asString();
     }
 
     @Test
