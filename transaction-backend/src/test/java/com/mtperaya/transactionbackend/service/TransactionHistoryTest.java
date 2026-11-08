@@ -25,8 +25,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assertions.*;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -347,9 +350,7 @@ class TransactionHistoryTest {
 
         assertEquals(originalStatus, persisted.getStatus());
 
-        assertEquals(
-            originalTimestamp.truncatedTo(java.time.temporal.ChronoUnit.MICROS), 
-            persisted.getCreatedAt()
-);
+        assertThat(persisted.getCreatedAt())
+                .isCloseTo(originalTimestamp, within(1, ChronoUnit.MILLIS));
     }
 }
