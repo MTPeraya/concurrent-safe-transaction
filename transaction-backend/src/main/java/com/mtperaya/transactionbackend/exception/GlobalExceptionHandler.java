@@ -1,5 +1,7 @@
 package com.mtperaya.transactionbackend.exception;
 
+import com.mtperaya.transactionbackend.exception.IdempotencyConflictException;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -9,6 +11,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.MissingRequestHeaderException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -38,7 +41,7 @@ public class GlobalExceptionHandler {
 
         return response;
     }
-    
+
     @ExceptionHandler(AccountNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ResponseBody
@@ -63,6 +66,62 @@ public class GlobalExceptionHandler {
 
         response.put("status", 400);
         response.put("message", exception.getMessage());
+
+        return response;
+    }
+    @ExceptionHandler(IdempotencyConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ResponseBody
+    public Map<String, Object> handleIdempotencyConflict(
+            IdempotencyConflictException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", 409);
+        response.put("message", exception.getMessage());
+
+        return response;
+    }
+
+    @ExceptionHandler(InsufficientFundsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ResponseBody
+    public Map<String, Object> handleInsufficientFunds(
+            InsufficientFundsException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", 409);
+        response.put("message", exception.getMessage());
+
+        return response;
+    }
+
+    @ExceptionHandler(InvalidTransferException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public Map<String, Object> handleInvalidTransfer(
+            InvalidTransferException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", 400);
+        response.put("message", exception.getMessage());
+
+        return response;
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public Map<String, Object> handleMissingRequestHeader(
+            MissingRequestHeaderException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", 400);
+        response.put("message", "Required header is missing: "
+                + exception.getHeaderName());
 
         return response;
     }

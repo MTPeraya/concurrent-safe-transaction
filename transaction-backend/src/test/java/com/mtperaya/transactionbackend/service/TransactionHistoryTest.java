@@ -57,6 +57,7 @@ class TransactionHistoryTest {
     private Account alice;
     private Account bob;
     private Account charlie;
+    
 
     @BeforeEach
     void setUp() {
@@ -83,6 +84,7 @@ class TransactionHistoryTest {
             Account sender,
             Account receiver,
             String amount) {
+                
 
         Transaction transaction = new Transaction(
                 sender.getId(),
@@ -348,6 +350,7 @@ class TransactionHistoryTest {
 
         assertEquals(
             originalTimestamp.truncatedTo(java.time.temporal.ChronoUnit.MICROS), 
-            persisted.getCreatedAt());
+            persisted.getCreatedAt()
+);
     }
 }

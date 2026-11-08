@@ -35,6 +35,9 @@ public class Transaction {
     @Column(nullable = false)
     private TransactionStatus status;
 
+    @Column(name = "idempotency_key", unique = true, length = 255)
+    private String idempotencyKey;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -46,12 +49,22 @@ public class Transaction {
             UUID fromAccountId,
             UUID toAccountId,
             BigDecimal amount,
-            TransactionStatus status) {
+            TransactionStatus status,
+            String idempotencyKey) {
 
         this.fromAccountId = fromAccountId;
         this.toAccountId = toAccountId;
         this.amount = amount;
         this.status = status;
+        this.idempotencyKey = idempotencyKey;
+    }
+
+    public Transaction(
+        UUID fromAccountId,
+        UUID toAccountId,
+        BigDecimal amount,
+        TransactionStatus status) {
+        this(fromAccountId, toAccountId, amount, status, null);
     }
 
     @PrePersist
@@ -79,6 +92,10 @@ public class Transaction {
 
     public TransactionStatus getStatus() {
         return status;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
     }
 
     public Instant getCreatedAt() {
