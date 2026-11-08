@@ -1,8 +1,12 @@
 package com.mtperaya.transactionbackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Version;
 
@@ -14,9 +18,10 @@ import java.time.LocalDateTime;
 
 @Entity
 public class Account {
+
     @Id
     @UuidGenerator
-    private UUID id; //primary key
+    private UUID id;
 
     private String ownerName;
 
@@ -28,13 +33,17 @@ public class Account {
 
     private LocalDateTime createdAt;
 
+    @ManyToOne
+    @JoinColumn(name = "owner_id")
+    @JsonIgnore
+    private User owner;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
 
-// Getters
-// Setters for client-modifiable fields
+    // Getters
 
     public UUID getId() {
         return id;
@@ -44,16 +53,8 @@ public class Account {
         return ownerName;
     }
 
-    public void setOwnerName(String ownerName) {
-        this.ownerName = ownerName;
-    }
-
     public BigDecimal getBalance() {
         return balance;
-    }
-
-    public void setBalance(BigDecimal balance) {
-        this.balance = balance;
     }
 
     public long getVersion() {
@@ -64,4 +65,21 @@ public class Account {
         return createdAt;
     }
 
+    public User getOwner() {
+        return owner;
+    }
+
+    // Setters
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
+    }
 }

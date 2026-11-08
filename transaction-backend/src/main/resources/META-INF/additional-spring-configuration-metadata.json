@@ -1,0 +1,9 @@
+{
+  "properties": [
+    {
+      "name": "app.jwt.secret",
+      "type": "java.lang.String",
+      "description": "Base64-encoded secret used to sign and verify JWTs."
+    }
+  ]
+}
