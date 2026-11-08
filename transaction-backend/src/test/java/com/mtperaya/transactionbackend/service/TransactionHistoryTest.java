@@ -346,6 +346,8 @@ class TransactionHistoryTest {
 
         assertEquals(originalStatus, persisted.getStatus());
 
-        assertEquals(originalTimestamp, persisted.getCreatedAt());
+        assertEquals(
+            originalTimestamp.truncatedTo(java.time.temporal.ChronoUnit.MICROS), 
+            persisted.getCreatedAt());
     }
 }
