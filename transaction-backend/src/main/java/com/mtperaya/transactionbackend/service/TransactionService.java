@@ -3,12 +3,15 @@ package com.mtperaya.transactionbackend.service;
 import com.mtperaya.transactionbackend.entity.Account;
 import com.mtperaya.transactionbackend.entity.Transaction;
 import com.mtperaya.transactionbackend.entity.TransactionStatus;
+import com.mtperaya.transactionbackend.entity.User;
 import com.mtperaya.transactionbackend.repository.AccountRepository;
 import com.mtperaya.transactionbackend.repository.TransactionRepository;
 import com.mtperaya.transactionbackend.dto.TransactionHistoryResponse;
+import com.mtperaya.transactionbackend.dto.TransferResult;
 
 import com.mtperaya.transactionbackend.exception.InvalidTransferException;
 import com.mtperaya.transactionbackend.exception.AccountNotFoundException;
+import com.mtperaya.transactionbackend.exception.AccessForbiddenException;
 import com.mtperaya.transactionbackend.exception.InsufficientFundsException;
 import com.mtperaya.transactionbackend.exception.IdempotencyConflictException;
 
@@ -58,6 +61,7 @@ public class TransactionService {
     }
 
     // New idempotent transfer method used by the API.
+    // Returns a TransferResult that tells the controller whether this is a replay (200) or new (201).
     @Transactional
     public Transaction transfer(
             UUID fromAccountId,
@@ -65,8 +69,31 @@ public class TransactionService {
             BigDecimal amount,
             String idempotencyKey) {
 
+        return transfer(fromAccountId, toAccountId, amount, idempotencyKey, null).getTransaction();
+    }
+
+    @Transactional
+    public TransferResult transfer(
+            UUID fromAccountId,
+            UUID toAccountId,
+            BigDecimal amount,
+            String idempotencyKey,
+            User requestingUser) {
+
         validateTransfer(fromAccountId, toAccountId, amount);
         validateIdempotencyKey(idempotencyKey);
+
+        // Authorization: the sender account must belong to the requesting user (if provided).
+        if (requestingUser != null) {
+            Account senderAccount = accountRepository.findById(fromAccountId)
+                    .orElseThrow(() -> new AccountNotFoundException(
+                            "Account not found: " + fromAccountId));
+
+            if (senderAccount.getOwner() == null || !senderAccount.getOwner().getId().equals(requestingUser.getId())) {
+                throw new AccessForbiddenException(
+                        "You do not have permission to transfer from this account");
+            }
+        }
 
         // 1. Acquire a PostgreSQL transaction-level advisory lock.
         entityManager.createNativeQuery("""
@@ -99,17 +126,18 @@ public class TransactionService {
                 );
             }
 
-            // 4. Return the original transaction without transferring again.
-            return existingTransaction;
+            // 4. Return the original transaction as a replay (200 OK).
+            return new TransferResult(existingTransaction, true);
         }
 
-        // 5. First use of this key: perform the transfer.
-        return performTransfer(
+        // 5. First use of this key: perform the transfer (201 Created).
+        Transaction newTransaction = performTransfer(
                 fromAccountId,
                 toAccountId,
                 amount,
                 idempotencyKey
         );
+        return new TransferResult(newTransaction, false);
     }
 
     private void validateTransfer(
@@ -214,11 +242,27 @@ public class TransactionService {
             UUID accountId,
             Pageable pageable) {
 
-        accountRepository.findById(accountId)
+        return getAccountTransactionHistory(accountId, pageable, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransactionHistoryResponse> getAccountTransactionHistory(
+            UUID accountId,
+            Pageable pageable,
+            User requestingUser) {
+
+        Account account = accountRepository.findById(accountId)
                 .orElseThrow(() ->
                         new AccountNotFoundException(
                                 "Account not found: " + accountId
                         ));
+
+        if (requestingUser != null) {
+            if (account.getOwner() == null || !account.getOwner().getId().equals(requestingUser.getId())) {
+                throw new AccessForbiddenException(
+                        "You do not have permission to view transaction history for this account");
+            }
+        }
 
         return transactionRepository
                 .findAccountHistory(accountId, pageable)

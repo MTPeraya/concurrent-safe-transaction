@@ -25,3 +25,4 @@ public class TransferResult {
         return replay;
     }
 }
+

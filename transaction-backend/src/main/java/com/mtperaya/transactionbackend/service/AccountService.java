@@ -50,9 +50,11 @@ public class AccountService {
                 .orElseThrow(() -> new com.mtperaya.transactionbackend.exception.AccountNotFoundException(
                         "Account not found: " + id));
 
-        if (!account.getOwner().getId().equals(requestingUser.getId())) {
-            throw new AccessForbiddenException(
-                    "You do not have access to this account");
+        if (requestingUser != null) {
+            if (account.getOwner() == null || !account.getOwner().getId().equals(requestingUser.getId())) {
+                throw new AccessForbiddenException(
+                        "You do not have access to this account");
+            }
         }
 
         return account;

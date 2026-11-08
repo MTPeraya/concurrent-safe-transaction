@@ -7,3 +7,4 @@ public class AccessForbiddenException extends RuntimeException {
         super(message);
     }
 }
+

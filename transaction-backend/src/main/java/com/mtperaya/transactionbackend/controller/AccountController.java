@@ -71,6 +71,9 @@ public class AccountController {
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private User resolveUser(Jwt jwt) {
+        if (jwt == null) {
+            return null;
+        }
         UUID userId = UUID.fromString(jwt.getSubject());
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalStateException(

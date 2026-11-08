@@ -13,6 +13,8 @@ import com.mtperaya.transactionbackend.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -97,8 +99,10 @@ public class AuthService {
                 .claim("email", user.getEmail())
                 .build();
 
+        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
+
         String token = jwtEncoder.encode(
-                JwtEncoderParameters.from(claims)
+                JwtEncoderParameters.from(header, claims)
         ).getTokenValue();
 
         return new LoginResponse(token);
