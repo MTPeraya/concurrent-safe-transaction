@@ -1,7 +1,5 @@
 package com.mtperaya.transactionbackend.exception;
 
-import com.mtperaya.transactionbackend.exception.IdempotencyConflictException;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -69,6 +67,21 @@ public class GlobalExceptionHandler {
 
         return response;
     }
+
+    @ExceptionHandler(EmailAlreadyRegisteredException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ResponseBody
+    public Map<String, Object> handleEmailAlreadyRegistered(
+            EmailAlreadyRegisteredException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", 409);
+        response.put("message", exception.getMessage());
+
+        return response;
+    }
+
     @ExceptionHandler(IdempotencyConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     @ResponseBody
@@ -84,14 +97,14 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InsufficientFundsException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     @ResponseBody
     public Map<String, Object> handleInsufficientFunds(
             InsufficientFundsException exception) {
 
         Map<String, Object> response = new LinkedHashMap<>();
 
-        response.put("status", 409);
+        response.put("status", 422);
         response.put("message", exception.getMessage());
 
         return response;
@@ -122,6 +135,33 @@ public class GlobalExceptionHandler {
         response.put("status", 400);
         response.put("message", "Required header is missing: "
                 + exception.getHeaderName());
+
+        return response;
+    }
+    @ExceptionHandler(InvalidCredentialsException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ResponseBody
+    public Map<String, Object> handleInvalidCredentials(
+            InvalidCredentialsException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", 401);
+        response.put("message", exception.getMessage());
+
+        return response;
+    }
+
+    @ExceptionHandler(AccessForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    @ResponseBody
+    public Map<String, Object> handleAccessForbidden(
+            AccessForbiddenException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", 403);
+        response.put("message", exception.getMessage());
 
         return response;
     }
