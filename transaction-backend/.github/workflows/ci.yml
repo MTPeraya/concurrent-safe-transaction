@@ -1,0 +1,32 @@
+name: Transaction Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Download repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Install Java 21
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # 3. Run tests against PostgreSQL Testcontainers
+      - name: Run tests
+        run: mvn -f transaction-backend/pom.xml clean verify
+
+      # 4. Build Docker image only if tests pass
+      - name: Build Docker image
+        run: docker build -t transaction-backend:latest ./transaction-backend

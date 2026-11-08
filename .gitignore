@@ -1,2 +1,14 @@
+# Environment variables and secrets
 .env
-.vscode
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Build output
+target/
+build/
+
+# OS
+.DS_Store

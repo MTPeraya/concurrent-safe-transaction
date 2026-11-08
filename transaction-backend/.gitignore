@@ -4,6 +4,21 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Build output
+target/
+build/
+
+# OS
+.DS_Store
+
 ### STS ###
 .apt_generated
 .classpath
