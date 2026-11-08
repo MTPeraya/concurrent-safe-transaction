@@ -315,35 +315,37 @@ class TransactionHistoryTest {
                 alice, bob, "150.00"
         );
 
+        // Capture original values
+        UUID originalId = transaction.getId();
+        UUID originalSender = transaction.getFromAccountId();
+        UUID originalReceiver = transaction.getToAccountId();
+        BigDecimal originalAmount = transaction.getAmount();
+        TransactionStatus originalStatus = transaction.getStatus();
         Instant originalTimestamp = transaction.getCreatedAt();
 
+        // Retrieve transaction history
         mockMvc.perform(get(
                 "/accounts/{id}/transactions",
                 alice.getId()
         ))
         .andExpect(status().isOk());
 
+        // Retrieve the persisted transaction again
         Transaction persisted = transactionRepository
-                .findById(transaction.getId())
+                .findById(originalId)
                 .orElseThrow();
 
-        assertEquals(
-                0,
-                originalTimestamp.compareTo(
-                        persisted.getCreatedAt()
-                )
-        );
+        // Verify every audit field remains unchanged
+        assertEquals(originalSender, persisted.getFromAccountId());
+        assertEquals(originalReceiver, persisted.getToAccountId());
 
         assertEquals(
                 0,
-                new BigDecimal("150.00").compareTo(
-                        persisted.getAmount()
-                )
+                originalAmount.compareTo(persisted.getAmount())
         );
 
-        assertEquals(
-                TransactionStatus.COMPLETED,
-                persisted.getStatus()
-        );
+        assertEquals(originalStatus, persisted.getStatus());
+
+        assertEquals(originalTimestamp, persisted.getCreatedAt());
     }
 }
