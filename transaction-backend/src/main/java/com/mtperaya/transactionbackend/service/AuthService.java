@@ -19,24 +19,31 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 public class AuthService {
 
+    public static final BigDecimal DEMO_STARTING_BALANCE = new BigDecimal("1000.00");
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtEncoder jwtEncoder;
+    private final AccountService accountService;
 
     public AuthService(
         UserRepository userRepository,
         PasswordEncoder passwordEncoder,
-        JwtEncoder jwtEncoder
+        JwtEncoder jwtEncoder,
+        AccountService accountService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtEncoder = jwtEncoder;
+        this.accountService = accountService;
     }
 
     @Transactional
@@ -66,9 +73,30 @@ public class AuthService {
         // Save user
         User savedUser = userRepository.save(user);
 
+        // FR-ACC-1: Automatically create demo account with fixed starting balance
+        accountService.createAccount("Demo Account", DEMO_STARTING_BALANCE, savedUser);
+
         // Return safe response
         return new UserResponse(savedUser);
     }
+
+    @Transactional
+    public LoginResponse createDemoUserAndLogin() {
+        String randomSuffix = UUID.randomUUID().toString().substring(0, 8);
+        String demoEmail = "demo-" + randomSuffix + "@demo.local";
+        String rawPassword = UUID.randomUUID().toString();
+
+        User user = new User();
+        user.setEmail(demoEmail);
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        User savedUser = userRepository.save(user);
+
+        // FR-ACC-1: Provision demo account
+        accountService.createAccount("Demo Account", DEMO_STARTING_BALANCE, savedUser);
+
+        return generateTokenResponse(savedUser);
+    }
+
     public LoginResponse login(LoginRequest request) {
 
         String email = request.getEmail()
@@ -89,6 +117,10 @@ public class AuthService {
             );
         }
 
+        return generateTokenResponse(user);
+    }
+
+    private LoginResponse generateTokenResponse(User user) {
         Instant now = Instant.now();
 
         JwtClaimsSet claims = JwtClaimsSet.builder()

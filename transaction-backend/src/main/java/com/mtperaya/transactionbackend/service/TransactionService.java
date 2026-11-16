@@ -1,10 +1,14 @@
 package com.mtperaya.transactionbackend.service;
 
 import com.mtperaya.transactionbackend.entity.Account;
+import com.mtperaya.transactionbackend.entity.OutboxEvent;
 import com.mtperaya.transactionbackend.entity.Transaction;
 import com.mtperaya.transactionbackend.entity.TransactionStatus;
 import com.mtperaya.transactionbackend.entity.User;
+import com.mtperaya.transactionbackend.event.TransferCompletedEvent;
+import com.mtperaya.transactionbackend.filter.CorrelationIdFilter;
 import com.mtperaya.transactionbackend.repository.AccountRepository;
+import com.mtperaya.transactionbackend.repository.OutboxEventRepository;
 import com.mtperaya.transactionbackend.repository.TransactionRepository;
 import com.mtperaya.transactionbackend.dto.TransactionHistoryResponse;
 import com.mtperaya.transactionbackend.dto.TransferResult;
@@ -15,32 +19,53 @@ import com.mtperaya.transactionbackend.exception.AccessForbiddenException;
 import com.mtperaya.transactionbackend.exception.InsufficientFundsException;
 import com.mtperaya.transactionbackend.exception.IdempotencyConflictException;
 
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
+import org.slf4j.MDC;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.List;
+
 @Service
 public class TransactionService {
 
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final OutboxEventRepository outboxEventRepository;
     private final EntityManager entityManager;
+    private final ObjectMapper objectMapper;
+
+    @Value("${app.transfer.max-amount:10000.00}")
+    private BigDecimal maxTransferAmount;
+
+    @Value("${app.transfer.max-daily-count:50}")
+    private int maxDailyTransferCount;
 
     public TransactionService(
             AccountRepository accountRepository,
             TransactionRepository transactionRepository,
-            EntityManager entityManager) {
+            OutboxEventRepository outboxEventRepository,
+            EntityManager entityManager,
+            ObjectMapper objectMapper) {
 
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.outboxEventRepository = outboxEventRepository;
         this.entityManager = entityManager;
+        this.objectMapper = objectMapper;
     }
 
     // Existing method retained for existing service/concurrency tests.
@@ -83,6 +108,10 @@ public class TransactionService {
 
         validateTransfer(fromAccountId, toAccountId, amount);
         validateIdempotencyKey(idempotencyKey);
+
+        if (requestingUser != null) {
+            validateDailyTransferLimit(requestingUser);
+        }
 
         // 1. Acquire a PostgreSQL transaction-level advisory lock.
         entityManager.createNativeQuery("""
@@ -141,6 +170,12 @@ public class TransactionService {
             );
         }
 
+        if (maxTransferAmount != null && amount.compareTo(maxTransferAmount) > 0) {
+            throw new InvalidTransferException(
+                    "Transfer amount exceeds maximum allowed limit of " + maxTransferAmount
+            );
+        }
+
         if (fromAccountId == null || toAccountId == null) {
             throw new InvalidTransferException(
                     "Account IDs cannot be null"
@@ -150,6 +185,25 @@ public class TransactionService {
         if (fromAccountId.equals(toAccountId)) {
             throw new InvalidTransferException(
                     "Cannot transfer to the same account"
+            );
+        }
+    }
+
+    private void validateDailyTransferLimit(User user) {
+        List<Account> userAccounts = accountRepository.findByOwner(user);
+        if (userAccounts.isEmpty()) {
+            return;
+        }
+
+        List<UUID> accountIds = userAccounts.stream().map(Account::getId).toList();
+        Instant startOfDay = LocalDate.now(ZoneOffset.UTC)
+                .atStartOfDay(ZoneOffset.UTC)
+                .toInstant();
+
+        long todayCount = transactionRepository.countTransactionsFromAccountsSince(accountIds, startOfDay);
+        if (todayCount >= maxDailyTransferCount) {
+            throw new InvalidTransferException(
+                    "Daily transfer limit of " + maxDailyTransferCount + " transactions reached"
             );
         }
     }
@@ -233,7 +287,10 @@ public class TransactionService {
                 idempotencyKey
         );
 
-        return transactionRepository.save(transaction);
+        Transaction savedTransaction = transactionRepository.save(transaction);
+        saveOutboxEvent(savedTransaction, sender.getId(), receiver.getId(), amount);
+
+        return savedTransaction;
     }
 
     /**
@@ -271,7 +328,46 @@ public class TransactionService {
                 UUID.randomUUID().toString()
         );
 
-        return transactionRepository.save(transaction);
+        Transaction savedTransaction = transactionRepository.save(transaction);
+        saveOutboxEvent(savedTransaction, fromAccountId, toAccountId, amount);
+
+        return savedTransaction;
+    }
+
+    private void saveOutboxEvent(
+            Transaction transaction,
+            UUID fromAccountId,
+            UUID toAccountId,
+            BigDecimal amount) {
+
+        String correlationId = MDC.get(CorrelationIdFilter.MDC_KEY);
+        if (correlationId == null || correlationId.isBlank()) {
+            correlationId = UUID.randomUUID().toString();
+        }
+
+        UUID eventId = UUID.randomUUID();
+        TransferCompletedEvent event = TransferCompletedEvent.of(
+                eventId,
+                correlationId,
+                transaction.getId(),
+                fromAccountId,
+                toAccountId,
+                amount,
+                transaction.getCreatedAt()
+        );
+
+        try {
+            String payload = objectMapper.writeValueAsString(event);
+            OutboxEvent outboxEvent = new OutboxEvent(
+                    eventId,
+                    fromAccountId.toString(),
+                    TransferCompletedEvent.EVENT_TYPE,
+                    payload
+            );
+            outboxEventRepository.save(outboxEvent);
+        } catch (JacksonException e) {
+            throw new RuntimeException("Failed to serialize outbox event payload", e);
+        }
     }
 
     @Transactional(readOnly = true)

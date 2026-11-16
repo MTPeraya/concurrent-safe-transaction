@@ -54,6 +54,20 @@ public class GlobalExceptionHandler {
         return response;
     }
 
+    @ExceptionHandler(AccountLimitExceededException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public Map<String, Object> handleAccountLimitExceeded(
+            AccountLimitExceededException exception) {
+
+        Map<String, Object> response = new LinkedHashMap<>();
+
+        response.put("status", 400);
+        response.put("message", exception.getMessage());
+
+        return response;
+    }
+
     @ExceptionHandler(InvalidPaginationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody

@@ -3,6 +3,7 @@ import com.mtperaya.transactionbackend.config.PostgresTestConfiguration;
 
 import com.mtperaya.transactionbackend.entity.Account;
 import com.mtperaya.transactionbackend.repository.AccountRepository;
+import com.mtperaya.transactionbackend.repository.OutboxEventRepository;
 import com.mtperaya.transactionbackend.repository.TransactionRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +41,9 @@ class TransactionConcurrencyTest {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    @Autowired
+    private OutboxEventRepository outboxEventRepository;
+
     private Account alice;
     private Account bob;
 
@@ -47,6 +51,7 @@ class TransactionConcurrencyTest {
     void setUp() {
 
         // Clean previous test data
+        outboxEventRepository.deleteAll();
         transactionRepository.deleteAll();
         accountRepository.deleteAll();
 
@@ -242,6 +247,19 @@ class TransactionConcurrencyTest {
             0,
             failed,
             "No transfers should fail"
+        );
+
+        // AT-1: Assert that exactly 100 outbox events exist
+        assertEquals(
+            100,
+            outboxEventRepository.count(),
+            "Exactly 100 outbox events must be created"
+        );
+
+        assertEquals(
+            100,
+            outboxEventRepository.countByPublishedAtIsNull(),
+            "All 100 outbox events must be unpublished initially"
         );
     }
 }

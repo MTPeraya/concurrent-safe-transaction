@@ -36,4 +36,15 @@ public interface TransactionRepository
     );
 
     Optional<Transaction> findByIdempotencyKey(String idempotencyKey);
+
+    @Query("""
+            SELECT count(t)
+            FROM Transaction t
+            WHERE t.fromAccountId IN :accountIds
+              AND t.createdAt >= :since
+            """)
+    long countTransactionsFromAccountsSince(
+            @Param("accountIds") java.util.List<UUID> accountIds,
+            @Param("since") java.time.Instant since
+    );
 }
