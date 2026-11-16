@@ -58,12 +58,63 @@ services:
 
       JWT_SECRET: ${JWT_SECRET}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      CASSANDRA_CONTACT_POINTS: cassandra:9042
+      CASSANDRA_DATACENTER: datacenter1
 
     depends_on:
       database:
         condition: service_healthy
       kafka:
         condition: service_started
+      cassandra-init:
+        condition: service_completed_successfully
+
+  cassandra:
+    image: cassandra:4.1
+    container_name: cassandra
+    restart: unless-stopped
+    ports:
+      - "9042:9042"
+    environment:
+      - MAX_HEAP_SIZE=512M
+      - HEAP_NEWSIZE=128M
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE KEYSPACES' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+
+  cassandra-init:
+    image: cassandra:4.1
+    container_name: cassandra-init
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    volumes:
+      - ./transaction-consumer/src/main/resources/schema.cql:/schema.cql
+    entrypoint: ["cqlsh", "cassandra", "-f", "/schema.cql"]
+
+  consumer:
+    build:
+      context: ./transaction-consumer
+    container_name: consumer
+    restart: unless-stopped
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC_TRANSFER_COMPLETED: transfers.completed
+      KAFKA_TOPIC_DLQ: transfers.completed.dlq
+      CASSANDRA_CONTACT_POINTS: cassandra:9042
+      CASSANDRA_DATACENTER: datacenter1
+      CASSANDRA_KEYSPACE: transfer_audit
+    depends_on:
+      kafka:
+        condition: service_started
+      cassandra-init:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:
+  cassandra_data:

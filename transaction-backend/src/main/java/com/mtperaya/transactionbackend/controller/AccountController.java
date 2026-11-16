@@ -3,11 +3,14 @@ package com.mtperaya.transactionbackend.controller;
 import java.util.List;
 import java.util.UUID;
 
+import com.mtperaya.transactionbackend.dto.AuditRecordResponse;
 import com.mtperaya.transactionbackend.dto.CreateAccountRequest;
 import com.mtperaya.transactionbackend.entity.Account;
 import com.mtperaya.transactionbackend.entity.User;
 import com.mtperaya.transactionbackend.repository.UserRepository;
 import com.mtperaya.transactionbackend.service.AccountService;
+import com.mtperaya.transactionbackend.service.AuditQueryService;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.http.HttpStatus;
@@ -31,10 +34,15 @@ public class AccountController {
 
     private final AccountService accountService;
     private final UserRepository userRepository;
+    private final AuditQueryService auditQueryService;
 
-    public AccountController(AccountService accountService, UserRepository userRepository) {
+    public AccountController(
+            AccountService accountService,
+            UserRepository userRepository,
+            AuditQueryService auditQueryService) {
         this.accountService = accountService;
         this.userRepository = userRepository;
+        this.auditQueryService = auditQueryService;
     }
 
     @PostMapping
@@ -74,6 +82,18 @@ public class AccountController {
         Account account = accountService.getAccountForUser(id, requestingUser);
 
         return ResponseEntity.ok(account);
+    }
+
+    @GetMapping("/{id}/audit")
+    public ResponseEntity<List<AuditRecordResponse>> getAccountAuditTrail(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "50") int limit) {
+
+        User requestingUser = resolveUser(jwt);
+        List<AuditRecordResponse> auditTrail = auditQueryService.getAuditTrail(id, limit, requestingUser);
+
+        return ResponseEntity.ok(auditTrail);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

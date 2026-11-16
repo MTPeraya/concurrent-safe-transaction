@@ -203,5 +203,50 @@ class AuthorizationIntegrationTest {
                 .andExpect(jsonPath("$.status").value(403))
                 .andExpect(jsonPath("$.message").value("You do not have permission to view transaction history for this account"));
     }
+
+    @Test
+    @DisplayName("FR-AUD-2: User should be able to query own account audit trail")
+    void shouldAllowOwnerToViewAccountAuditTrail() throws Exception {
+        String tokenUserA = registerAndLogin("audit_alice@example.com", "Password123!");
+        String tokenUserB = registerAndLogin("audit_bob@example.com", "Password123!");
+
+        String accountA = createAccountForUser(tokenUserA, "Alice Audit", new BigDecimal("1000.00"));
+        String accountB = createAccountForUser(tokenUserB, "Bob Audit", new BigDecimal("200.00"));
+
+        CreateTransactionRequest transferRequest = new CreateTransactionRequest();
+        transferRequest.setFromAccountId(UUID.fromString(accountA));
+        transferRequest.setToAccountId(UUID.fromString(accountB));
+        transferRequest.setAmount(new BigDecimal("100.00"));
+
+        mockMvc.perform(post("/transactions")
+                        .header("Authorization", "Bearer " + tokenUserA)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(transferRequest)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/accounts/" + accountA + "/audit")
+                        .header("Authorization", "Bearer " + tokenUserA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].direction").value("DEBIT"))
+                .andExpect(jsonPath("$[0].amount").value(100.00));
+    }
+
+    @Test
+    @DisplayName("FR-AUD-2: User should be forbidden (403) from querying another user's audit trail")
+    void shouldForbidUserFromViewingAnotherUsersAccountAuditTrail() throws Exception {
+        String tokenUserA = registerAndLogin("audit_owner@example.com", "Password123!");
+        String tokenUserB = registerAndLogin("audit_stranger@example.com", "Password123!");
+
+        String accountA = createAccountForUser(tokenUserA, "Owner Account", new BigDecimal("1000.00"));
+
+        mockMvc.perform(get("/accounts/" + accountA + "/audit")
+                        .header("Authorization", "Bearer " + tokenUserB))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("You do not have access to this account"));
+    }
 }
 

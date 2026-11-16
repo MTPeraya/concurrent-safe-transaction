@@ -17,10 +17,7 @@ dist/
 # OS
 .DS_Store
 
-# Superpowers & Agent internal files
-docs/*
-docs/superpowers/
-*superpower*
+# IDE & Editor
 .vscode/
 .impeccable/
 .agents/
