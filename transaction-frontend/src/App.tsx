@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
+import { DemoBanner } from './components/DemoBanner';
 import { AuthPage } from './pages/AuthPage';
 import { AccountsPage } from './pages/AccountsPage';
 import { TransferPage } from './pages/TransferPage';
@@ -19,6 +20,7 @@ const ProtectedLayout: React.FC = () => {
 
   return (
     <div className="app-shell">
+      <DemoBanner />
       <Navbar />
       <main className="main-content">
         <Routes>
@@ -36,6 +38,7 @@ const ProtectedLayout: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
+      <DemoBanner />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />

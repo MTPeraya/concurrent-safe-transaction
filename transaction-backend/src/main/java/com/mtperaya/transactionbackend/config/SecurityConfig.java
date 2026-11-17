@@ -32,9 +32,13 @@ import java.util.List;
 public class SecurityConfig {
 
     private final CorrelationIdFilter correlationIdFilter;
+    private final com.mtperaya.transactionbackend.filter.RateLimitingFilter rateLimitingFilter;
 
-    public SecurityConfig(CorrelationIdFilter correlationIdFilter) {
+    public SecurityConfig(
+            CorrelationIdFilter correlationIdFilter,
+            com.mtperaya.transactionbackend.filter.RateLimitingFilter rateLimitingFilter) {
         this.correlationIdFilter = correlationIdFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
     }
 
     @Bean
@@ -43,13 +47,14 @@ public class SecurityConfig {
 
         http
             .addFilterBefore(correlationIdFilter, SecurityContextHolderFilter.class)
+            .addFilterAfter(rateLimitingFilter, CorrelationIdFilter.class)
             .cors(Customizer.withDefaults())
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**", "/error").permitAll()
+                .requestMatchers("/auth/**", "/error", "/status", "/actuator/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 ->
