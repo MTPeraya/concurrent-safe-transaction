@@ -3,6 +3,7 @@ import com.mtperaya.transactionbackend.config.PostgresTestConfiguration;
 
 import com.mtperaya.transactionbackend.entity.Account;
 import com.mtperaya.transactionbackend.repository.AccountRepository;
+import com.mtperaya.transactionbackend.repository.OutboxEventRepository;
 import com.mtperaya.transactionbackend.repository.TransactionRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +41,9 @@ class TransactionConcurrencyTest {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    @Autowired
+    private OutboxEventRepository outboxEventRepository;
+
     private Account alice;
     private Account bob;
 
@@ -47,6 +51,7 @@ class TransactionConcurrencyTest {
     void setUp() {
 
         // Clean previous test data
+        outboxEventRepository.deleteAll();
         transactionRepository.deleteAll();
         accountRepository.deleteAll();
 
@@ -243,5 +248,77 @@ class TransactionConcurrencyTest {
             failed,
             "No transfers should fail"
         );
+
+        // AT-1: Assert that exactly 100 outbox events exist
+        assertEquals(
+            100,
+            outboxEventRepository.count(),
+            "Exactly 100 outbox events must be created"
+        );
+
+        assertEquals(
+            100,
+            outboxEventRepository.countByPublishedAtIsNull(),
+            "All 100 outbox events must be unpublished initially"
+        );
+    }
+
+    @Test
+    void shouldPreventDeadlocksUnderOpposingTransfers() throws Exception {
+        // Reset balances: Alice = $500, Bob = $500
+        alice.setBalance(new BigDecimal("500.00"));
+        accountRepository.saveAndFlush(alice);
+        bob.setBalance(new BigDecimal("500.00"));
+        accountRepository.saveAndFlush(bob);
+        outboxEventRepository.deleteAll();
+        transactionRepository.deleteAll();
+
+        int totalTransfers = 100;
+        BigDecimal amount = new BigDecimal("5.00");
+        ExecutorService executor = Executors.newFixedThreadPool(totalTransfers);
+        CountDownLatch readyLatch = new CountDownLatch(totalTransfers);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        AtomicInteger successful = new AtomicInteger(0);
+        AtomicInteger deadlocks = new AtomicInteger(0);
+
+        List<Future<?>> futures = new ArrayList<>();
+        for (int i = 0; i < totalTransfers; i++) {
+            final boolean aliceToBob = (i % 2 == 0); // 50 Alice->Bob, 50 Bob->Alice
+            futures.add(executor.submit(() -> {
+                readyLatch.countDown();
+                try {
+                    startLatch.await();
+                    if (aliceToBob) {
+                        transactionService.transfer(alice.getId(), bob.getId(), amount);
+                    } else {
+                        transactionService.transfer(bob.getId(), alice.getId(), amount);
+                    }
+                    successful.incrementAndGet();
+                } catch (Exception e) {
+                    if (e.getMessage() != null && e.getMessage().contains("deadlock")) {
+                        deadlocks.incrementAndGet();
+                    }
+                    System.err.println("Transfer failed: " + e.getMessage());
+                }
+            }));
+        }
+
+        assertTrue(readyLatch.await(30, TimeUnit.SECONDS));
+        startLatch.countDown(); // Fire opposing transfers simultaneously
+
+        for (Future<?> f : futures) {
+            f.get(60, TimeUnit.SECONDS);
+        }
+        executor.shutdown();
+
+        Account finalAlice = accountRepository.findById(alice.getId()).orElseThrow();
+        Account finalBob = accountRepository.findById(bob.getId()).orElseThrow();
+        BigDecimal finalTotal = finalAlice.getBalance().add(finalBob.getBalance());
+
+        // Assert 0 deadlocks (SQLSTATE 40P01 prevented by deterministic UUID total order)
+        assertEquals(0, deadlocks.get(), "Zero deadlocks should occur under opposing transfers");
+        assertEquals(100, successful.get(), "All 100 opposing transfers must succeed");
+        assertEquals(0, new BigDecimal("1000.00").compareTo(finalTotal), "Total balance must remain strictly $1,000.00");
+        assertEquals(100, outboxEventRepository.count(), "Exactly 100 outbox events recorded");
     }
 }

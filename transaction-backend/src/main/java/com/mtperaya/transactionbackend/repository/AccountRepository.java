@@ -23,4 +23,6 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     Optional<Account> findByIdWithLock(@Param("id") UUID id);
 
     List<Account> findByOwner(User owner);
+
+    long countByOwner(User owner);
 }

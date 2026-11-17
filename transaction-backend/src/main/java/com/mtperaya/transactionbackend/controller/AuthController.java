@@ -41,4 +41,11 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/demo-login")
+    public ResponseEntity<LoginResponse> demoLogin() {
+        LoginResponse response = authService.createDemoUserAndLogin();
+
+        return ResponseEntity.ok(response);
+    }
 }

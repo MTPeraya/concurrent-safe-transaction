@@ -3,7 +3,9 @@ package com.mtperaya.transactionbackend.service;
 import com.mtperaya.transactionbackend.entity.Account;
 import com.mtperaya.transactionbackend.entity.User;
 import com.mtperaya.transactionbackend.exception.AccessForbiddenException;
+import com.mtperaya.transactionbackend.exception.AccountLimitExceededException;
 import com.mtperaya.transactionbackend.repository.AccountRepository;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.math.BigDecimal;
 
@@ -18,11 +20,32 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
 
+    @Value("${app.account.max-per-user:3}")
+    private int maxAccountsPerUser;
+
+    @Value("${app.account.system-max:1000}")
+    private int systemMaxAccounts;
+
     public AccountService(AccountRepository accountRepository) {
         this.accountRepository = accountRepository;
     }
 
     public Account createAccount(String ownerName, BigDecimal initialBalance, User owner) {
+        if (accountRepository.count() >= systemMaxAccounts) {
+            throw new AccountLimitExceededException(
+                    "System account limit reached (" + systemMaxAccounts + " accounts max)"
+            );
+        }
+
+        if (owner != null) {
+            long currentCount = accountRepository.countByOwner(owner);
+            if (currentCount >= maxAccountsPerUser) {
+                throw new AccountLimitExceededException(
+                        "User cannot have more than " + maxAccountsPerUser + " accounts"
+                );
+            }
+        }
+
         // 1. Create Account object
         Account account = new Account();
 

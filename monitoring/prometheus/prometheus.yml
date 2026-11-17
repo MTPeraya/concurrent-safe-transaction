@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  - job_name: "transaction-backend"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["backend:8080"]
+
+  - job_name: "transaction-consumer"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["consumer:9090"]

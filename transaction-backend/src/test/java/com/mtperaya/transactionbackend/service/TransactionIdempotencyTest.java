@@ -6,6 +6,7 @@ import com.mtperaya.transactionbackend.entity.Transaction;
 import com.mtperaya.transactionbackend.exception.IdempotencyConflictException;
 import com.mtperaya.transactionbackend.exception.InsufficientFundsException;
 import com.mtperaya.transactionbackend.repository.AccountRepository;
+import com.mtperaya.transactionbackend.repository.OutboxEventRepository;
 import com.mtperaya.transactionbackend.repository.TransactionRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -44,12 +45,16 @@ class TransactionIdempotencyTest {
     @Autowired
     private TransactionRepository transactionRepository;
 
+    @Autowired
+    private OutboxEventRepository outboxEventRepository;
+
     private Account sender;
     private Account receiver;
 
     @BeforeEach
     void setUp() {
 
+        outboxEventRepository.deleteAll();
         transactionRepository.deleteAll();
         accountRepository.deleteAll();
 
@@ -86,6 +91,7 @@ class TransactionIdempotencyTest {
         assertEquals(first.getId(), second.getId());
 
         assertEquals(1, transactionRepository.count());
+        assertEquals(1, outboxEventRepository.count(), "AT-2: Replay must produce exactly 1 outbox event");
 
         assertEquals(
                 0,
@@ -197,6 +203,7 @@ class TransactionIdempotencyTest {
             );
 
             assertEquals(1, transactionRepository.count());
+            assertEquals(1, outboxEventRepository.count(), "AT-2: Concurrent requests with same key must produce exactly 1 outbox event");
 
             assertEquals(
                     0,
