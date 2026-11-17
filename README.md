@@ -32,7 +32,7 @@ A high-reliability, event-driven financial transfer engine engineered to guarant
 7. [Chaos Testing & Fault Injection](#7-chaos-testing--fault-injection)
 8. [Automated Daily Reconciliation](#8-automated-daily-reconciliation)
 9. [API Reference & Observability Endpoints](#9-api-reference--observability-endpoints)
-10. [Technical Documentation & Interview Guides](#10-technical-documentation--interview-guides)
+10. [Technical Documentation](#10-technical-documentation)
 
 ---
 
@@ -396,8 +396,6 @@ For in-depth architectural analysis, engineering rationale, and interview prepar
 
 - 📊 **[Verified Benchmark Results (`docs/results.md`)](docs/results.md):** Complete raw benchmark logs, hardware conditions, and acceptance test matrix (AT-1 through AT-12).
 - 📐 **[System Requirements Specification (`docs/SRS.md`)](docs/SRS.md):** Formal specification covering functional, non-functional, and data consistency requirements.
-- 🎯 **[Google XYZ Resume Accomplishments (`docs/Helpers/resume-accomplishments.md`)](docs/Helpers/resume-accomplishments.md):** Metric-backed resume bullets formatted using the Google XYZ formula (`Accomplished [X], as measured by [Y], by doing [Z]`).
-- 💼 **[Agoda Technical Interview Preparation Guide (`docs/Helpers/agoda-interview-prep.md`)](docs/Helpers/agoda-interview-prep.md):** 10 deep-dive technical questions covering pessimistic locking trade-offs, deadlock prevention math, advisory locking vs. Redis, MVCC internals, and distributed scaling patterns.
 
 ---
 
