@@ -209,6 +209,11 @@ This extension builds on the Transaction Backend proposal. Its Phase 1 (MVP) and
 | FR-REC-2 | The job shall output a report listing missing, duplicate, or mismatched records and an overall pass or fail result. | P3 |
 | FR-REC-3 | The job shall be runnable on a schedule (for example nightly) and on demand. | P3 |
 
+### 3.4b As-Built Architectural Refinements
+The following refinements were introduced during implementation to ensure production fault-tolerance and environment portability:
+1. **Auditing Fallback Resilience (FR-AUD-2 As-Built):** The `GET /accounts/{id}/audit` endpoint connects to Cassandra's `account_audit_events` partition when available. If Cassandra is unreachable (cold-start, network partition, or maintenance), it automatically falls back to reading the authoritative PostgreSQL `transactions` table. This guarantees zero-downtime read capability for user audit histories without sacrificing strict owner-only authorization (`403 Forbidden` for non-owners).
+2. **Reconciliation Engine Dual-Mode (FR-REC-1 As-Built):** `scripts/reconcile.py` supports both a PySpark 3.5 distributed DataFrame engine (when running on compatible JVM environments such as Java 17/21) and an embedded pure-Python reconciler with identical decimal math and schema output. This ensures scheduled nightly reconciliation runs reliably across all deployment targets.
+
 ### 3.5 Observability
 
 | ID | Requirement | Priority |

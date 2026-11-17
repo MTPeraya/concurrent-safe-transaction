@@ -1,39 +1,42 @@
-# Resume Bullet Points: Concurrent-Safe Transaction Engine
-### Tailored for Agoda Software Engineering Internship (Full-Stack / Backend 2027)
+# Resume Bullet Points: Event-Driven Transfer Platform & Concurrency Engine
+### Tailored for Software Engineering Internship (Backend / Distributed Systems / Data Platform)
 
-Use these Google XYZ-formatted bullets (`Accomplished [X] as measured by [Y], by doing [Z]`) for your software engineering resume, LinkedIn profile, and internship portfolio.
+Use these Google XYZ-formatted bullets (`Accomplished [X] as measured by [Y], by doing [Z]`) for your software engineering resume, LinkedIn profile, and portfolio. All numbers are backed by raw benchmark outputs documented in [`docs/results.md`](file:///Users/mintt/Documents/Mint_Project/concurrent-safe-transaction/docs/results.md).
 
 ---
 
-## 🎯 Primary Resume Bullets (Choose 3-4 for your Project section)
+## 🎯 Top Resume Bullets (Choose 4-5 for your Project section)
 
-### Bullet Option 1: Concurrency & Database Locking
-> **Concurrent-Safe Financial Transaction Engine** | *Java 21, Spring Boot 4, PostgreSQL, Docker, JUnit 5*
-> - Engineered a high-throughput financial transfer engine guaranteeing **zero balance corruption and 0% deadlock rate** across **100 concurrent threads**, utilizing **PostgreSQL pessimistic row-level locking (`SELECT FOR UPDATE`)** with deterministic UUID sorting order.
+### 1. Concurrency Control & Database Locking (Pessimistic vs. Optimistic)
+> - **Eliminated balance race conditions and deadlocks**, achieving a **100% transfer completion rate** under 100 concurrent threads competing on a single account balance (outperforming JPA optimistic locking which suffered a **95% failure rate**), by implementing PostgreSQL row-level locking (`SELECT ... FOR NO KEY UPDATE`) with deterministic UUID ordering.
 
-### Bullet Option 2: Performance Benchmarking & Reliability
-> - Conducted empirical concurrency benchmarks proving pessimistic locking achieved **100% transfer completion rate vs. 7% for JPA optimistic locking (`@Version`)** under high contention, eliminating 93% transaction rollback overheads without balance leakage ($1,000 money conservation invariant verified).
+### 2. Transactional Outbox & Reliable Kafka Publishing
+> - **Guaranteed zero event loss during broker downtime** (**100% of 10 accumulated transfers preserved and drained**), by designing a Transactional Outbox pattern with atomic database insertion and a multi-instance safe publisher utilizing `SELECT ... FOR UPDATE SKIP LOCKED` and Kafka producer acknowledgments.
 
-### Bullet Option 3: Distributed Systems & Idempotency
-> - Prevented duplicate financial charges and replay attacks by implementing transactional idempotency using **PostgreSQL transaction-scoped advisory locks (`pg_advisory_xact_lock`)** and SHA-hashed request keys, achieving 100% duplicate request suppression without external distributed lock managers.
+### 3. Idempotent Consumer & Distributed Audit Store (Scala & Cassandra)
+> - **Prevented duplicate financial audit records** (**0 duplicates across simulated crashes and redeliveries**, verified with 16 records for 8 transfers), by authoring a Scala Kafka consumer committing offsets strictly after writes to an Apache Cassandra partition table clustered by `((account_id), occurred_at, event_id)`.
 
-### Bullet Option 4: Security & Stateless Authentication
-> - Architected a stateless security boundary using **Spring Security 6 and JWT (HMAC-SHA256)** with BCrypt password hashing, enforcing fine-grained user ownership authorization and preventing cross-user account tampering across all REST endpoints.
+### 4. Fault Tolerance & Dead Letter Queue (DLQ)
+> - **Protected data ingestion pipelines from unhandled crashes** (**100% of malformed and schema-mismatched messages routed to DLQ** with zero consumer stalls), by building an automated dead-letter queue routing mechanism with exponential backoff retries and diagnostic error headers.
 
-### Bullet Option 5: Observability & Production Readiness
-> - Enhanced production observability by developing a servlet `CorrelationIdFilter` with SLF4J MDC integration, injecting unique `X-Request-Id` tracing headers across logs and HTTP responses for distributed request tracing.
+### 5. Automated Data Reconciliation Batch Job (PySpark)
+> - **Automated financial ledger integrity verification** (**1,000 accounts verified with zero discrepancies** and 100% detection of simulated $50.00 drift), by developing a PySpark and Python batch reconciler that performs distributed outer joins comparing PostgreSQL double-entry ledgers against Cassandra audit records.
 
-### Bullet Option 6: Automated Testing & Load Testing
-> - Validated end-to-end data integrity by authoring **45+ automated integration tests** with **Testcontainers** and executing asynchronous load tests achieving **134 requests/sec** with zero failed transactions and zero balance discrepancy.
+### 6. Rate Limiting & Denial-of-Service Defense
+> - **Shielded transfer APIs from burst traffic and replay attacks**, rejecting **100% of excess requests with HTTP 429** and `Retry-After: 60` headers, by creating an in-memory token-bucket rate limiter isolating quotas per IP and per authenticated user.
+
+### 7. Observability & Automated Testing
+> - **Ensured regression-free distributed system stability** across **76 automated tests** (JUnit 5 + Testcontainers, ScalaTest, Pytest) executed in GitHub Actions CI in < 30 seconds, coupled with a 5-panel Grafana dashboard tracking throughput, latency (p50/p95/p99), outbox backlog, and consumer lag.
 
 ---
 
 ## 🛠 Skills & Keywords to Include in Your Resume Skills Section
 
-- **Languages:** Java 21, TypeScript, SQL (PostgreSQL), Python
-- **Backend & Frameworks:** Spring Boot 4, Spring Data JPA, Spring Security, Hibernate, RESTful APIs, JWT
-- **Databases & Concurrency:** PostgreSQL 16, Pessimistic Row Locking, Advisory Locks, MVCC, Transaction Isolation (ACID)
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS / Modern CSS, Axios
-- **DevOps & Testing:** Docker, Docker Compose, Testcontainers, JUnit 5, Git, GitHub Actions CI/CD
-- **System Concepts:** Concurrency Control, Deadlock Prevention, Idempotency, Distributed Tracing (MDC), OOP, Clean Architecture
+- **Languages:** Java 21, Scala 2.13, Python 3.12, TypeScript, SQL
+- **Distributed Systems & Messaging:** Apache Kafka 3.9 (KRaft), Transactional Outbox, Idempotent Consumer, Dead-Letter Queue (DLQ), Offset Management
+- **Databases & Concurrency:** PostgreSQL 16 (Pessimistic Row Locking, Advisory Locks, MVCC), Apache Cassandra 4.1 (Compound Partition/Clustering Keys, CQL)
+- **Big Data & Analytics:** Apache Spark (PySpark 3.5), Distributed Outer Joins, Data Reconciliation
+- **Frameworks & Libraries:** Spring Boot 4, Spring Security (JWT/BCrypt), Spring Data JPA, Hibernate, Micrometer, Circe
+- **Observability & DevOps:** Prometheus, Grafana, Docker, Docker Compose, Testcontainers, GitHub Actions CI/CD, SLF4J MDC Tracing
+- **Frontend:** React 18, TypeScript, Vite
 
