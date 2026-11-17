@@ -87,31 +87,31 @@
 
 | Test ID | Description | Status | Evidence / Notes |
 | :--- | :--- | :---: | :--- |
-| **AT-1** | 100 concurrent transfers ($1,000 invariant) + 100 outbox events created | `COMPLETED` | Verified in `TransactionConcurrencyTest`: 100/100 transfers succeeded, $1000 invariant conserved, exactly 100 outbox events generated. |
-| **AT-2** | 10 replays with same idempotency key produce 1 transfer and 1 event | `COMPLETED` | Verified in `TransactionIdempotencyTest`: sequential & concurrent replays produce 1 transaction and 1 outbox event. |
-| **AT-3** | Rollback after outbox insert results in 0 published events | `COMPLETED` | Verified in `OutboxAtomicRollbackTest`: failed transfers roll back outbox events cleanly. |
-| **AT-4** | Stop Kafka, fire transfers, restart Kafka; all events delivered | `COMPLETED` | Verified in `OutboxPublisherIntegrationTest`: outbox accumulates events during broker outage and cleanly drains all events upon recovery. |
-| **AT-5** | Kill consumer mid-load, restart; 0 lost events, 0 duplicate records | `COMPLETED` | Verified in `TransferConsumerTest`: offsets committed post-write, duplicate delivery writes 0 duplicate audit rows due to compound clustering key. |
-| **AT-6** | Malformed message routes to DLQ topic, processing continues | `COMPLETED` | Verified in `TransferConsumerTest`: malformed JSON and schemaVersion > 1 route to `transfers.completed.dlq` with diagnostic headers and commit offset. |
-| **AT-7** | Benchmark comparing 1 vs. 3 consumer instances | `COMPLETED` | Verified architecture in `TransferConsumer`: group ID `transfer-audit-service` with round-robin partition distribution over account keys. |
-| **AT-8** | Rate limit enforcement returns HTTP 429 | `COMPLETED` | Verified in `RateLimitingFilterTest`: token-bucket per IP/user, 429 + Retry-After header after quota exhaustion. |
-| **AT-9** | Grafana dashboard displays all operational metrics under load | `COMPLETED` | Grafana dashboard JSON provisioned at `monitoring/grafana/provisioning/dashboards/platform-overview.json` with throughput, latency p50/p95/p99, outbox backlog, consumer lag, DLQ panels. |
-| **AT-10**| Automated CI/CD rollback on healthcheck failure | `COMPLETED` | GitHub Actions workflow `.github/workflows/ci.yml` runs Java + Scala tests and builds both Docker images; deploy blocked if tests fail. |
-| **AT-11**| Security audit: private PostgreSQL, Kafka, Prometheus; public API/UI | `COMPLETED` | Only `8080` (API), `3000` (Grafana) exposed publicly in `docker-compose.yml`; Kafka `9092`, Postgres `5432`, Prometheus `9090` are internal-only by default. |
-| **AT-12**| Spark reconciliation passes on clean state, fails on deleted record | `COMPLETED` | Verified in `test_reconcile.py` (7/7 tests passed): PASS on matching totals, FAIL on missing/drifted Cassandra rows, PASS on 1,000 accounts. |
+| **AT-1** | 100 concurrent transfers ($1,000 invariant) + 100 outbox events created | `VERIFIED` | Verified in `TransactionConcurrencyTest`: 100/100 transfers succeeded, $1000 invariant conserved, exactly 100 outbox events generated. Also verified 0 deadlocks (SQLSTATE 40P01 eliminated) on 100 opposing bidirectional transfers. |
+| **AT-2** | 10 replays with same idempotency key produce 1 transfer and 1 event | `VERIFIED` | Verified in `TransactionIdempotencyTest`: sequential & concurrent replays produce 1 transaction and 1 outbox event. |
+| **AT-3** | Rollback after outbox insert results in 0 published events | `VERIFIED` | Verified in `OutboxAtomicRollbackTest`: failed transfers roll back outbox events cleanly. |
+| **AT-4** | Stop Kafka, fire transfers, restart Kafka; all events delivered | `VERIFIED` | Verified in `OutboxPublisherIntegrationTest`: outbox accumulates 10 events during broker outage and cleanly drains all 10 events upon recovery (0 lost). |
+| **AT-5** | Kill consumer mid-load, restart; 0 lost events, 0 duplicate records | `VERIFIED (SIMULATION)` | Verified in `TransferConsumerTest.scala`: simulated crash after 5 events, restarted with at-least-once redelivery of event 5 + events 6-8. Exactly 16 audit rows created, 0 duplicates. *Multi-container live chaos script pending.* |
+| **AT-6** | Malformed message routes to DLQ topic, processing continues | `VERIFIED` | Verified in `TransferConsumerTest`: malformed JSON, schemaVersion > 1, and missing fields route to `transfers.completed.dlq` with diagnostic headers and commit offset. |
+| **AT-7** | Benchmark comparing 1 vs. 3 consumer instances | `NOT VERIFIED` | Group ID `transfer-audit-service` configured. Multi-consumer scaling benchmark has not yet been executed. |
+| **AT-8** | Rate limit enforcement returns HTTP 429 | `VERIFIED` | Verified in `RateLimitingFilterTest`: token-bucket per IP/user, 429 + Retry-After header returned on quota exhaustion. |
+| **AT-9** | Grafana dashboard displays all operational metrics under load | `NOT VERIFIED` | Grafana dashboard JSON provisioned at `monitoring/grafana/provisioning/dashboards/platform-overview.json`. Live load run with captured dashboard pending. |
+| **AT-10**| Automated CI/CD rollback on healthcheck failure | `NOT VERIFIED` | GitHub Actions workflow `.github/workflows/ci.yml` runs Java + Scala tests and builds both Docker images; rollback drill on healthcheck failure pending. |
+| **AT-11**| Security audit: private PostgreSQL, Kafka, Prometheus; public API/UI | `PARTIALLY VERIFIED` | Only `8080` (API) public; `/actuator/**` restricted (only `/actuator/health` public); Grafana bound to localhost (`127.0.0.1:3001`). Automated vulnerability scan pending. |
+| **AT-12**| Reconciliation passes on clean state, fails on deleted record | `VERIFIED (PYTHON)` | Verified in `test_reconcile.py` (7/7 tests passed on in-memory test data): PASS on matching totals, FAIL on missing/drifted rows. (PySpark tests skipped on JDK 27). |
 
 ---
 
-## All Milestones Complete 🎉
+## Current Status & Test Summary
 
 **Last Updated:** 2026-11-17
 
-All 4 milestones (M0–M4) and all 12 acceptance tests (AT-1 through AT-12) are complete.
-All requirements (FR-AUTH, FR-ACC, FR-TRF, FR-OUT, FR-PUB, FR-CON, FR-AUD, FR-REC, FR-OBS, FR-DEMO) are implemented and backed by automated tests.
+All core functional components (M0–M4) are implemented. Grounded test verification evidence is documented in [`docs/results.md`](file:///Users/mintt/Documents/Mint_Project/concurrent-safe-transaction/docs/results.md).
 
-### Summary Evidence
-| Layer | Test Count | Framework |
-|---|---|---|
-| Backend (Java/Spring Boot) | 59/59 ✅ | JUnit 5 + Testcontainers |
-| Scala Consumer | 5/5 ✅ | ScalaTest |
-| Reconciler (Python/Spark) | 7/7 ✅ | pytest (pure-Python path) |
+### Automated Test Count
+| Layer | Test Count | Framework | Status |
+|---|---|---|---|
+| Backend (Java/Spring Boot) | 60/60 | JUnit 5 + Testcontainers | ✅ PASS |
+| Scala Consumer | 10/10 | ScalaTest | ✅ PASS |
+| Reconciler (Python) | 7/7 | pytest | ✅ PASS |
+| **Total** | **77/77** | | ✅ **ALL PASSING** |
