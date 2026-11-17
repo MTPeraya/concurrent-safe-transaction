@@ -1,4 +1,4 @@
-FROM sbtscala/scala-sbt:eclipse-temurin-21.0.2_13_1.10.7_2.13.15 AS builder
+FROM sbtscala/scala-sbt:eclipse-temurin-21_1.x AS builder
 
 WORKDIR /build
 
