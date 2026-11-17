@@ -23,13 +23,17 @@ jobs:
           java-version: '21'
           cache: maven
 
-      # 3. Run Scala Consumer tests
+      # 3. Set up sbt for Scala Consumer
+      - name: Set up sbt
+        uses: sbt/setup-sbt@v1
+
+      # 4. Run Scala Consumer tests
       - name: Run Scala Consumer tests
         run: |
           cd transaction-consumer
           sbt test
 
-      # 4. Run backend tests against PostgreSQL Testcontainers
+      # 5. Run backend tests against PostgreSQL Testcontainers
       - name: Run backend tests
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
@@ -40,7 +44,7 @@ jobs:
           chmod +x transaction-backend/mvnw
           ./transaction-backend/mvnw -f transaction-backend/pom.xml clean verify
 
-      # 5. Build Docker images only if all tests pass
+      # 6. Build Docker images only if all tests pass
       - name: Build Docker images
         run: |
           docker build -t transaction-backend:latest ./transaction-backend
