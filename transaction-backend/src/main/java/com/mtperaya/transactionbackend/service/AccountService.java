@@ -23,11 +23,20 @@ public class AccountService {
     @Value("${app.account.max-per-user:3}")
     private int maxAccountsPerUser;
 
+    @Value("${app.account.system-max:1000}")
+    private int systemMaxAccounts;
+
     public AccountService(AccountRepository accountRepository) {
         this.accountRepository = accountRepository;
     }
 
     public Account createAccount(String ownerName, BigDecimal initialBalance, User owner) {
+        if (accountRepository.count() >= systemMaxAccounts) {
+            throw new AccountLimitExceededException(
+                    "System account limit reached (" + systemMaxAccounts + " accounts max)"
+            );
+        }
+
         if (owner != null) {
             long currentCount = accountRepository.countByOwner(owner);
             if (currentCount >= maxAccountsPerUser) {

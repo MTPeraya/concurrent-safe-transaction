@@ -1,0 +1,29 @@
+groups:
+  - name: transfer_platform_alerts
+    rules:
+      - alert: ConsumerLagHigh
+        expr: transfer_consumer_lag > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Transfer consumer lag exceeds threshold"
+          description: "Consumer lag has been > 100 messages for over 2 minutes."
+
+      - alert: OutboxBacklogHigh
+        expr: transfer_outbox_backlog > 500
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Outbox backlog backlog is accumulating"
+          description: "Unpublished outbox events backlog exceeded 500 for over 3 minutes."
+
+      - alert: DeadLetterQueueNotEmpty
+        expr: transfer_consumer_dlq_total > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Messages detected in DLQ topic"
+          description: "One or more poisoned/exhausted messages routed to transfers.completed.dlq."
